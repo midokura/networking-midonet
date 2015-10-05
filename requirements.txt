@@ -4,8 +4,8 @@
 
 pbr>=0.6,!=0.7,<1.0
 Babel>=1.3
-oslo.log==1.0.0  # remove the dependency when will be declared in neutron
 -e git://git.openstack.org/openstack/neutron.git@stable/kilo#egg=neutron
+-e git://git.openstack.org/openstack/neutron-fwaas.git@stable/kilo#egg=neutron-fwaas
 -e git://git.openstack.org/openstack/neutron-lbaas.git@stable/kilo#egg=neutron-lbaas
 -e git://github.com/midonet/python-midonetclient.git@master#egg=midonetclient
 
