@@ -30,8 +30,8 @@ _LW = i18n._LW
 class NetworkBinding(model_base.BASEV2):
     __tablename__ = 'midonet_network_bindings'
 
-    network_id = sa.Column(sa.String(36), sa.ForeignKey('networks.id',
-                           ondelete="CASCADE"), primary_key=True)
+    network_id = sa.Column(sa.String(36), sa.ForeignKey('networks.id'),
+                           primary_key=True)
     network_type = sa.Column(sa.String(length=255), nullable=False)
     network = orm.relationship(models_v2.Network,
                                backref=orm.backref("network_binding",
