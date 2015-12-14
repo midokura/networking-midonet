@@ -58,8 +58,7 @@ class _MidonetFirewallDriver(object):
                               "in Midonet: %(err)s"),
                           {"fw_id": firewall["id"], "err": ex})
                 try:
-                    self.plugin.delete_db_firewall_object(context,
-                                                          firewall['id'])
+                    self.plugin.delete_firewall(context, firewall['id'])
                 except Exception:
                     LOG.exception(_LE("Failed to delete firewall %s"),
                                   firewall['id'])
