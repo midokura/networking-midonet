@@ -88,6 +88,9 @@ class MidonetPluginV2TestCase(test_plugin.NeutronDbPluginV2TestCase):
 
     def setup_parent(self, service_plugins=None, ext_mgr=None):
 
+        if service_plugins and "l3_plugin_name" in service_plugins:
+            del service_plugins["l3_plugin_name"]
+
         # Set up mock for the midonet client to be made available in tests
         patcher = mock.patch(test_mn_plugin.TEST_MN_CLIENT)
         self.client_mock = mock.MagicMock()

@@ -44,7 +44,7 @@ class FirewallTestCase(tfp.TestFirewallPluginBase,
         with self.router() as router:
             router_ids = [router['router']['id']]
 
-            self._create_firewall(self.fmt, "fw_test", "fw_desc",
+            self._create_firewall(self.fmt, "fw_test", "fw_desc", None,
                                   router_ids=router_ids,
                                   expected_res_status=500)
 
