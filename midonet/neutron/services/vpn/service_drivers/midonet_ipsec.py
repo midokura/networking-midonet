@@ -19,7 +19,6 @@ from neutron import i18n
 from neutron.plugins.common import constants as const
 from neutron_vpnaas.services.vpn import plugin
 from neutron_vpnaas.services.vpn.service_drivers import base_ipsec
-from neutron_vpnaas.services.vpn.service_drivers import ipsec_validator
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -31,17 +30,15 @@ LOG = logging.getLogger(__name__)
 
 class MidonetIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     def __init__(self, service_plugin):
-        super(MidonetIPsecVPNDriver, self).__init__(service_plugin,
-                ipsec_validator.IpsecVpnValidator(service_plugin))
+        super(MidonetIPsecVPNDriver, self).__init__(service_plugin)
+
         self.plugin = plugin.VPNPlugin()
         self.client = c_base.load_client(cfg.CONF.MIDONET)
 
     def create_rpc_conn(self):
         pass
 
-    def create_vpnservice(self, context, vpnservice_dict):
-        super(MidonetIPsecVPNDriver, self).create_vpnservice(
-                context, vpnservice_dict)
+    def _create_vpnservice(self, context, vpnservice_dict):
         try:
             self.client.create_vpn_service(context, vpnservice_dict)
         except Exception as ex:
@@ -49,13 +46,8 @@ class MidonetIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
                 LOG.error(_LE("Failed to create a vpn_service %(service_id)s "
                               "in MidoNet: %(err)s"),
                           {"service_id": vpnservice_dict["id"], "err": ex})
-                try:
-                    self.plugin.delete_vpnservice(
-                            context, vpnservice_dict['id'])
-                except Exception:
-                    LOG.exception(_LE("Failed to delete vpn_service %s"),
-                                  vpnservice_dict['id'])
-
+                self.update_vpn_service_status(context, vpnservice_dict['id'],
+                                               const.ERROR)
         self.update_vpn_service_status(context, vpnservice_dict['id'],
                                        const.ACTIVE)
 
@@ -86,7 +78,13 @@ class MidonetIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
     def create_ipsec_site_connection(self, context, ipsec_site_connection):
         ipsec_site_conn_info = self.make_ipsec_site_connection_dict(
                 context, ipsec_site_connection['id'])
+        vpnservice = self.service_plugin.get_vpnservice(
+            context, ipsec_site_connection['vpnservice_id'])
         try:
+            # Create the vpnservice if it didn't exist
+            if vpnservice['status'] == 'PENDING_CREATE':
+                self._create_vpnservice(context, vpnservice)
+            # Create the ipsec site connection
             self.client.create_ipsec_site_conn(context, ipsec_site_conn_info)
         except Exception as ex:
             with excutils.save_and_reraise_exception():
@@ -139,11 +137,8 @@ class MidonetIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
         vpnservice = ipsec_site_conn.vpnservice
         vpnservice.ipsec_site_connections = [ipsec_site_conn]
 
-        local_cidr_map = self.service_plugin._build_local_subnet_cidr_map(
-                    context)
-        vpnservice_dict = self.make_vpnservice_dict(vpnservice, local_cidr_map)
+        vpnservice_dict = self.make_vpnservice_dict(vpnservice)
         ipsec_site_conn_dict = vpnservice_dict['ipsec_site_connections'][0]
-        del ipsec_site_conn_dict['vpnservice']
 
         return ipsec_site_conn_dict
 

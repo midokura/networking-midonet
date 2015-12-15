@@ -13,19 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
-import webob.exc
-
 from midonet.neutron.tests.unit import test_midonet_plugin_v2 as test_mn
 
 from neutron.db import servicetype_db as sdb
 from neutron import extensions as nextensions
 from neutron.plugins.common import constants as n_const
-from neutron.services import provider_configuration as provconf
+from neutron.tests.unit.api import test_extensions as test_ex
 from neutron.tests.unit.extensions import test_l3 as test_l3_plugin
 from neutron_vpnaas import extensions
 from neutron_vpnaas.tests.unit.db.vpn import test_vpn_db
 
+from oslo_config import cfg
 
 MN_DRIVER_KLASS = ('midonet.neutron.services.vpn.service_drivers.'
                    'midonet_ipsec.MidonetIPsecVPNDriver')
@@ -52,53 +50,44 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
                   test_mn.MidonetPluginV2TestCase):
     def setUp(self):
         service_plugins = {
-            'vpn_plugin_name': DB_VPN_PLUGIN_KLASS}
+            'vpnaas_plugin': DB_VPN_PLUGIN_KLASS}
         vpnaas_provider = (n_const.VPN + ':vpnaas:' + MN_DRIVER_KLASS
                            + ':default')
-        mock.patch.object(provconf.NeutronModule, 'service_providers',
-                          return_value=[vpnaas_provider]).start()
-        manager = sdb.ServiceTypeManager.get_instance()
-        manager.add_provider_configuration(
-            n_const.VPN, provconf.ProviderConfiguration())
+        ext_mgr = VPNTestExtensionManager()
+        cfg.CONF.set_override('service_provider',
+                              [vpnaas_provider],
+                              'service_providers')
+        sdb.ServiceTypeManager._instance = None
 
         super(VPNTestCase, self).setUp(service_plugins=service_plugins,
-                                       ext_mgr=VPNTestExtensionManager())
-
-    def test_create_vpn_service(self):
-        with self.vpnservice() as vpnservice:
-            req = self.new_show_request('vpnservices',
-                    vpnservice['vpnservice']['id'])
-            res = self.deserialize(self.fmt, req.get_response(self.ext_api))
-            self.assertEqual(n_const.ACTIVE, res['vpnservice']['status'])
-
-    def test_create_vpn_service_error_delete_neutron_resource(self):
-        self.client_mock.create_vpn_service.side_effect = Exception(
-                "Fake Error")
-        with self.subnet(cidr='10.2.0.0/24') as subnet, \
-                self.router() as router:
-            try:
-                with self.vpnservice(subnet=subnet, router=router,
-                                     do_delete=False):
-                    # Shouldn't be reached
-                    self.assertTrue(False)
-            except webob.exc.HTTPClientError:
-                pass
-            req = self.new_list_request('vpnservices')
-            res = self.deserialize(self.fmt, req.get_response(self.ext_api))
-            self.assertFalse(res['vpnservices'])
+                                       ext_mgr=ext_mgr)
+        self.ext_api = test_ex.setup_extensions_middleware(ext_mgr)
 
     def test_update_vpn_service(self):
         with self.vpnservice() as vpnservice:
             data = {'vpnservice': {'name': 'vpnservice2'}}
             vpnservice_id = vpnservice['vpnservice']['id']
             req = self.new_update_request('vpnservices', data, vpnservice_id)
+            res = req.get_response(self.ext_api)
+            # Note: Neutron doesn't allow updating vpnservice in PENDING_CREATE
+            # which is set to ACTIVE only when we create the ipsec site conn
+            self.assertEqual(400, res.status_int)
+
+    def test_update_vpn_service_after_ipsec_conn_create(self):
+        with self.vpnservice() as vpnservice, \
+            self.ipsec_site_connection(vpnservice=vpnservice):
+            data = {'vpnservice': {'name': 'vpnservice2'}}
+            vpnservice_id = vpnservice['vpnservice']['id']
+            req = self.new_update_request('vpnservices', data, vpnservice_id)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(n_const.ACTIVE, res['vpnservice']['status'])
+            self.assertEqual(200, req.get_response(self.ext_api).status_int)
 
     def test_update_vpn_service_error_change_neutron_resource_status(self):
         self.client_mock.update_vpn_service.side_effect = Exception(
-                "Fake Error")
-        with self.vpnservice() as vpnservice:
+            "Fake Error")
+        with self.vpnservice() as vpnservice, \
+            self.ipsec_site_connection(vpnservice=vpnservice):
             data = {'vpnservice': {'name': 'vpnservice2'}}
             vpnservice_id = vpnservice['vpnservice']['id']
             req = self.new_update_request('vpnservices', data, vpnservice_id)
@@ -118,7 +107,7 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
             res = req.get_response(self.ext_api)
             self.assertEqual(204, res.status_int)
 
-    def test_delete_vpn_service_error_delete_neutron_resouce(self):
+    def test_delete_vpnservice_error_delete_neutron_resouce(self):
         self.client_mock.delete_vpn_service_side_effect = Exception(
                 "Fake Error")
         self.test_delete_vpnservice()
@@ -127,29 +116,73 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
         res = self.deserialize(self.fmt, req.get_response(self.ext_api))
         self.assertFalse(res['vpnservices'])
 
-    def test_create_ipsec_site_connection(self):
-        with self.ipsec_site_connection() as ipsec_site_connection:
+    def _create_ipsec_connection_on_success(self, vpnservice, ikepolicy,
+                                            ipsecpolicy):
+        with self.ipsec_site_connection(
+                vpnservice=vpnservice,
+                ikepolicy=ikepolicy, ipsecpolicy=ipsecpolicy) as site:
+            ipsec_conn_id = site['ipsec_site_connection']['id']
             req = self.new_show_request('ipsec-site-connections',
-                ipsec_site_connection['ipsec_site_connection']['id'])
+                                        ipsec_conn_id)
+            res = self.deserialize(self.fmt, req.get_response(self.ext_api))
+            # Check status is ACTIVE
+            self.assertEqual(n_const.ACTIVE,
+                             res['ipsec_site_connection']['status'])
+            # Check it's really created on the DB
+            req = self.new_list_request('ipsec-site-connections')
+            res = self.deserialize(self.fmt, req.get_response(self.ext_api))
+            self.assertTrue(res['ipsec_site_connections'])
+            # Check vpnservice status is ACTIVE
+            req = self.new_show_request(
+                'vpnservices',
+                res['ipsec_site_connections'][0]['vpnservice_id'])
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(n_const.ACTIVE,
-                res['ipsec_site_connection']['status'])
+                             res['vpnservice']['status'])
 
-    def test_create_ipsec_site_connection_error_delete_neutron_resouce(self):
-        self.client_mock.create_ipsec_site_conn.side_effect = Exception(
-                "Fake Error")
+    def test_create_ipsec_site_connection(self):
         with self.vpnservice() as vpnservice, \
                 self.ikepolicy() as ikepolicy, \
                 self.ipsecpolicy() as ipsecpolicy:
-            self._create_ipsec_site_connection(self.fmt, 'site_conn2',
-                    peer_cidrs='192.168.101.0/24',
-                    vpnservice_id=vpnservice['vpnservice']['id'],
-                    ikepolicy_id=ikepolicy['ikepolicy']['id'],
-                    ipsecpolicy_id=ipsecpolicy['ipsecpolicy']['id'],
-                    expected_res_status=500)
-            req = self.new_list_request('ipsec-site-connections')
-            res = self.deserialize(self.fmt, req.get_response(self.ext_api))
-            self.assertFalse(res['ipsec_site_connections'])
+            self._create_ipsec_connection_on_success(vpnservice, ikepolicy,
+                                                 ipsecpolicy)
+
+    def _create_ipsec_connection_on_error(self, vpnservice, ikepolicy,
+                                          ipsecpolicy, vpnservice_status):
+        self._create_ipsec_site_connection(self.fmt, 'site_conn2',
+                peer_cidrs='192.168.101.0/24',
+                vpnservice_id=vpnservice['vpnservice']['id'],
+                ikepolicy_id=ikepolicy['ikepolicy']['id'],
+                ipsecpolicy_id=ipsecpolicy['ipsecpolicy']['id'],
+                expected_res_status=500)
+        # Check no objects are created
+        req = self.new_list_request('ipsec-site-connections')
+        res = self.deserialize(self.fmt, req.get_response(self.ext_api))
+        self.assertFalse(res['ipsec_site_connections'])
+        # Check vpnservice went to a specific status
+        req = self.new_show_request(
+            'vpnservices', vpnservice['vpnservice']['id'])
+        res = self.deserialize(self.fmt, req.get_response(self.ext_api))
+        self.assertEqual(vpnservice_status,
+                         res['vpnservice']['status'])
+
+    def test_create_ipsec_site_connection_error_delete_neutron_resouce(self):
+        with self.vpnservice() as vpnservice, \
+                self.ikepolicy() as ikepolicy, \
+                self.ipsecpolicy() as ipsecpolicy:
+            self.client_mock.create_ipsec_site_conn.side_effect = Exception(
+                "Fake Error on create_ipsec_site_connection")
+            self._create_ipsec_connection_on_error(vpnservice, ikepolicy,
+                                                   ipsecpolicy, n_const.ACTIVE)
+
+    def test_create_ipsec_site_connection_on_vpnservice_error(self):
+        with self.vpnservice() as vpnservice, \
+                self.ikepolicy() as ikepolicy, \
+                self.ipsecpolicy() as ipsecpolicy:
+            self.client_mock.create_vpn_service.side_effect = Exception(
+                "Fake Error on create_vpn_service")
+            self._create_ipsec_connection_on_error(vpnservice, ikepolicy,
+                                                   ipsecpolicy, n_const.ERROR)
 
     def test_update_ipsec_site_connection(self):
         with self.ipsec_site_connection() as ipsec_site_connection:
@@ -192,7 +225,7 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
 
     def test_delete_ipsec_site_connection_error(self):
         self.client_mock.delete_ipsec_site_conn.side_effect = Exception(
-                "Fake Error")
+            "Fake Error on delete_ipsec_site_conn")
         self.test_delete_ipsec_site_connection()
         req = self.new_list_request('ipsec-site-connections')
         res = self.deserialize(self.fmt, req.get_response(self.ext_api))
