@@ -14,6 +14,7 @@
 #    under the License.
 
 from midonet.neutron.db import agent_membership_db as am_db
+from midonet.neutron.db import l3_db_midonet
 from midonet.neutron.db import port_binding_db as pb_db
 from midonet.neutron.db import provider_network_db as pnet_db
 from midonet.neutron import plugin
@@ -43,6 +44,7 @@ class MidonetPluginV2(plugin.MidonetMixinBase,
                       addr_pair_db.AllowedAddressPairsMixin,
                       am_db.AgentMembershipDbMixin,
                       extraroute_db.ExtraRoute_db_mixin,
+                      l3_db_midonet.MidonetL3DBMixin,
                       pnet_db.MidonetProviderNetworkMixin,
                       pb_db.MidonetPortBindingMixin,
                       ps_db.PortSecurityDbMixin):
@@ -403,6 +405,7 @@ class MidonetPluginV2(plugin.MidonetMixinBase,
     def delete_router(self, context, id):
         LOG.debug("MidonetPluginV2.delete_router called: id=%s", id)
 
+        self._check_router_not_in_use(context, id)
         with context.session.begin(subtransactions=True):
             super(MidonetPluginV2, self).delete_router(context, id)
             self.client.delete_router_precommit(context, id)

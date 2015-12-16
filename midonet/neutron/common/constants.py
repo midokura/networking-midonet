@@ -15,3 +15,6 @@
 
 # Network Type constants
 TYPE_UPLINK = 'uplink'
+
+# Neutron well-known service type constants:
+GATEWAY_DEVICE = "GATEWAY_DEVICE"
