@@ -46,6 +46,23 @@ following entries in the Neutron configuration file
     service_provider=LOADBALANCER:Midonet:midonet.neutron.services.loadbalancer.driver.MidonetLoadbalancerDriver:default
 
 
+VPNaaS
+------
+
+Starting v5.1, MidoNet implements Neutron VPNaaS extension API.
+
+MidoNet plugin implements VPNaaS as a service driver.  To configure it,
+add the following entries in the Neutron configuration file
+``/etc/neutron/neutron.conf``::
+
+    [DEFAULT]
+    service_plugins = vpnaas
+
+    [service_providers]
+    service_provider=VPN:Midonet:midonet.neutron.services.vpn.service_drivers.midonet_ipsec.MidonetIPsecVPNDriver:default
+
+NOTE: This plugin does not use Neutron VPNaaS agent.
+
 Tests
 -----
 
@@ -82,7 +99,5 @@ HACKING
 
 To contribute to this repo, please go through the following steps.
 
-1. Keep your working tree updated
-2. Make modifications on your working tree
-3. Run tests
-4. If the tests pass, submit patches to our Gerrit server to get them reviewed
+
+
