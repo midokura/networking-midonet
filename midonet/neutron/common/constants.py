@@ -18,3 +18,5 @@ TYPE_UPLINK = 'uplink'
 
 # Neutron well-known service type constants:
 GATEWAY_DEVICE = "GATEWAY_DEVICE"
+
+MAX_VXLAN_VNI = 16777215
