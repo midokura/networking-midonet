@@ -154,6 +154,16 @@ class MidonetL2GatewayTestCase(test_gw.GatewayDeviceTestCaseMixin,
             self.deserialize(self.fmt, res)
             self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
 
+    def test_create_midonet_l2gateway_with_gateway_device_not_found(self):
+        res = self._create_l2_gateway(device_id='a')
+        self.deserialize(self.fmt, res)
+        self.assertEqual(webob.exc.HTTPNotFound.code, res.status_int)
+
+    def test_create_midonet_l2gateway_with_multiple_gateway_devices(self):
+        res = self._create_l2_gateway(device_id='a', device_id2='b')
+        self.deserialize(self.fmt, res)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
     def test_create_midonet_l2gateway_with_segmentation_id(self):
         with self.gateway_device_type_router_vtep(
                 resource_id=self._router_id) as gw_dev:
@@ -236,6 +246,18 @@ class MidonetL2GatewayTestCase(test_gw.GatewayDeviceTestCaseMixin,
                 self.assertEqual(webob.exc.HTTPBadRequest.code,
                                  res.status_int)
 
+    def test_create_midonet_l2gateway_connection_with_not_found_network(self):
+        with self.gateway_device_type_router_vtep(
+            resource_id=self._router_id) as gw_dev:
+            with self.l2_gateway(
+                    name=L2_GW_NAME,
+                    device_id=gw_dev['gateway_device']['id']) as l2_gw:
+                res = self._create_l2_gateway_connection(
+                    l2_gateway_id=l2_gw['l2_gateway']['id'],
+                    network_id='a')
+                self.deserialize(self.fmt, res)
+                self.assertEqual(webob.exc.HTTPNotFound.code, res.status_int)
+
     def test_create_midonet_l2gateway_connection_with_invalid_seg_id(self):
         with self.gateway_device_type_router_vtep(
                 resource_id=self._router_id) as gw_dev:
@@ -266,6 +288,13 @@ class MidonetL2GatewayTestCase(test_gw.GatewayDeviceTestCaseMixin,
                     self.deserialize(self.fmt, res)
                     self.assertEqual(res.status_int,
                                      webob.exc.HTTPConflict.code)
+
+    def test_create_midonet_l2gateway_connection_with_invalid_l2_gateway(self):
+        res = self._create_l2_gateway_connection(l2_gateway_id='a',
+                                                 network_id=self._network_id,
+                                                 segmentation_id=FAKE_SEG_ID)
+        self.deserialize(self.fmt, res)
+        self.assertEqual(webob.exc.HTTPNotFound.code, res.status_int)
 
     def test_create_midonet_l2gateway_con_seg_id_with_l2gw_seg_id(self):
         with self.gateway_device_type_router_vtep(
