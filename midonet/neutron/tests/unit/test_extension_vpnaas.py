@@ -81,7 +81,10 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
             req = self.new_update_request('vpnservices', data, vpnservice_id)
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(n_const.ACTIVE, res['vpnservice']['status'])
-            self.assertEqual(200, req.get_response(self.ext_api).status_int)
+            self.assertEqual('vpnservice2', res['vpnservice']['name'])
+            self.assertEqual(
+                'vpnservice2',
+                self.client_mock.update_vpn_service.call_args[0][2]['name'])
 
     def test_update_vpn_service_error_change_neutron_resource_status(self):
         self.client_mock.update_vpn_service.side_effect = Exception(
@@ -139,6 +142,8 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(n_const.ACTIVE,
                              res['vpnservice']['status'])
+            args = self.client_mock.create_ipsec_site_conn.call_args[0][1]
+            self.assertEqual(['10.0.0.0/24'], args['local_cidrs'])
 
     def test_create_ipsec_site_connection(self):
         with self.vpnservice() as vpnservice, \
@@ -212,7 +217,11 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
 
     def test_update_ipsec_site_connection(self):
         with self.ipsec_site_connection() as ipsec_site_connection:
-            data = {'ipsec_site_connection': {'mtu': '1300'}}
+            data = {'ipsec_site_connection':
+                {'mtu': '1300',
+                 'peer_cidrs': ['30.0.0.0/24', '31.0.0.0/24'],
+                 'dpd': {'interval': 45}}}
+
             ipsec_site_conn_id = (
                    ipsec_site_connection['ipsec_site_connection']['id'])
             req = self.new_update_request('ipsec-site-connections', data,
@@ -220,6 +229,17 @@ class VPNTestCase(test_vpn_db.VPNTestMixin,
             res = self.deserialize(self.fmt, req.get_response(self.ext_api))
             self.assertEqual(n_const.ACTIVE,
                     res['ipsec_site_connection']['status'])
+            self.assertEqual(1300, res['ipsec_site_connection']['mtu'])
+            self.assertEqual(['30.0.0.0/24', '31.0.0.0/24'],
+                             res['ipsec_site_connection']['peer_cidrs'])
+            self.assertEqual(45,
+                             res['ipsec_site_connection']['dpd']['interval'])
+
+            args = self.client_mock.update_ipsec_site_conn.call_args[0][2]
+            self.assertEqual(1300, args['mtu'])
+            self.assertEqual(['30.0.0.0/24', '31.0.0.0/24'],
+                             args['peer_cidrs'])
+            self.assertEqual(45, args['dpd_interval'])
 
     def test_update_ipsec_site_connection_error(self):
         self.client_mock.update_ipsec_site_conn.side_effect = Exception(
