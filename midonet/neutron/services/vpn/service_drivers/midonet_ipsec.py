@@ -140,6 +140,9 @@ class MidonetIPsecVPNDriver(base_ipsec.BaseIPsecVPNDriver):
                 lambda conn: conn['id'] == ipsec_site_conn_id,
                 vpnservice_dict['ipsec_site_connections']))[0]
 
+        # Move the subnet cidr into local_cidrs
+        vpn_subnet_cidr = vpnservice_dict['subnet']['cidr']
+        ipsec_site_conn_dict['local_cidrs'] = [vpn_subnet_cidr]
         return ipsec_site_conn_dict
 
     def update_vpn_service_status(self, context, vpnservice_id, status):
