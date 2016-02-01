@@ -1,5 +1,5 @@
 [gerrit]
-host=review.openstack.org
+host=review.gerrithub.io
 port=29418
-project=openstack/networking-midonet.git
-defaultbranch=stable/juno
+project=midokura/networking-midonet.git
+defaultbranch=juno
