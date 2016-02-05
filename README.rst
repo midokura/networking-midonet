@@ -63,6 +63,33 @@ add the following entries in the Neutron configuration file
 
 NOTE: This plugin does not use Neutron VPNaaS agent.
 
+
+RegionalSecurityGroup
+---------------------
+
+In Fujitsu Kilo, MidonetPlugin supports Fujitsu RegionalSecurityGroup.
+
+There is a new plugin called "MidonetRegionalSGPlugin".
+To configure it, add the following entries in ``/etc/neutron/neutron.conf``::
+
+    [DEFAULT]
+    core_plugin = midonet.neutron.plugin_rsg.MidonetRegionalSGPlugin
+
+    # ========Start RegionalSecurityGroup Config Option=========
+    sg_url = https://<host>:<port>/<path>
+    # sg_http_timeout = 60
+    # sync_sg_interval = 40
+    # sync_sg_initial_delay = 5
+    # ========End RegionalSecurityGroup Config Option===========
+
+NOTE:
+
+* ``sg_url`` : Specify URL of SG service.
+* ``sg_http_timeout`` : Specify http timeout value.
+* ``sync_sg_interval`` : Specify interval periodically to sync data.
+* ``sync_sg_initial_delay`` : Specify initial delay of periodical sync.
+
+
 Tests
 -----
 

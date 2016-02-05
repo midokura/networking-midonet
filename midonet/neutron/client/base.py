@@ -194,6 +194,20 @@ class MidonetClientBase(object):
     def delete_security_group_rule_postcommit(self, security_group_rule_id):
         pass
 
+    # Fj Regional Security group extension
+
+    def get_security_groups(self):
+        pass
+
+    def get_ipaddr_group_addrs(self, security_group_id):
+        pass
+
+    def create_ipaddr_group_addr(self, ipg_addr):
+        pass
+
+    def delete_ipaddr_group_addr(self, ipg_id, v, addr):
+        pass
+
     # Agent membership extension
 
     def create_agent_membership_precommit(self, context, agent_membership):

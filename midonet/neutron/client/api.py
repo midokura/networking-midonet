@@ -91,6 +91,20 @@ class MidonetApiClient(base.MidonetClientBase):
     def delete_security_group_rule_postcommit(self, security_group_rule_id):
         self.api_cli.delete_security_group_rule(security_group_rule_id)
 
+    # Fj Regional Security group extension
+
+    def get_security_groups(self):
+        return self.api_cli.get_security_groups()
+
+    def get_ipaddr_group_addrs(self, security_group_id):
+        return self.api_cli.get_ipaddr_group_addrs(security_group_id)
+
+    def create_ipaddr_group_addr(self, ipg_addr):
+        return self.api_cli.create_ipaddr_group_addr(ipg_addr)
+
+    def delete_ipaddr_group_addr(self, ipg_id, v, addr):
+        return self.api_cli.delete_ipaddr_group_addr(ipg_id, v, addr)
+
     def create_vip(self, context, vip):
         self.api_cli.create_vip(vip)
 
