@@ -13,7 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
+from midonet.neutron.services.l2gateway.common import l2gw_midonet_validators
 from networking_l2gw.db.l2gateway import l2gateway_db
+from networking_l2gw.services.l2gateway.common import constants
 
 
 class MidonetL2GatewayMixin(l2gateway_db.L2GatewayMixin):
@@ -24,12 +27,27 @@ class MidonetL2GatewayMixin(l2gateway_db.L2GatewayMixin):
         # applicable in MidoNet.
         pass
 
+    def _get_l2_gateway_seg_id(self, context, l2_gw_id):
+        seg_id = None
+        l2_gw_dev = self.get_l2gateway_devices_by_gateway_id(
+                    context, l2_gw_id)
+        interfaces = self.get_l2gateway_interfaces_by_device_id(
+                    context, l2_gw_dev[0]['id'])
+        if interfaces:
+            seg_id = interfaces[0][constants.SEG_ID]
+        return seg_id
+
     def create_l2_gateway(self, context, l2_gateway):
         # HACK: set the device_name to device_id so that the networking-l2gw
         # DB class does not throw an error.
         gw = l2_gateway[self.gateway_resource]
         for device in gw['devices']:
             device['device_name'] = device['device_id']
+            if device.get(constants.SEG_ID):
+                l2gw_midonet_validators.is_valid_vxlan_id(
+                        device[constants.SEG_ID])
+                device['interfaces'].append(
+                    {constants.SEG_ID: [str(device[constants.SEG_ID])]})
         return super(MidonetL2GatewayMixin, self).create_l2_gateway(
             context, l2_gateway)
 
@@ -42,6 +60,9 @@ class MidonetL2GatewayMixin(l2gateway_db.L2GatewayMixin):
         if 'devices' in l2gw:
             for device in l2gw['devices']:
                 device['device_id'] = device['device_name']
+                if device['interfaces']:
+                    device[constants.SEG_ID] = \
+                            device['interfaces'][0][constants.SEG_ID][0]
                 del device['device_name']
                 del device['id']
                 del device['interfaces']
