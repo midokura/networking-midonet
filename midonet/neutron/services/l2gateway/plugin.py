@@ -15,10 +15,10 @@
 
 from midonet.neutron.db import l2gateway_midonet as l2gw_db
 from midonet.neutron.services.l2gateway.common import l2gw_midonet_validators
+from networking_l2gw.db.l2gateway import l2gateway_db
 from networking_l2gw import extensions as l2gateway_ext
 from networking_l2gw.services.l2gateway.common import config
 from networking_l2gw.services.l2gateway.common import l2gw_validators
-from networking_l2gw.db.l2gateway import l2gateway_db
 from networking_l2gw.services.l2gateway import plugin as l2gw_plugin
 from neutron.api import extensions as neutron_extensions
 from neutron import i18n
