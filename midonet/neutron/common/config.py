@@ -40,3 +40,16 @@ mido_opts = [
 ]
 
 cfg.CONF.register_opts(mido_opts, "MIDONET")
+
+# The Neutron Kilo version FWaaS plugin expects the router_distrubted option
+# to be present in the config. However, in this plugin version we do not load
+# the module that creates this option. Create the option here to work around
+# this.
+other_opts = [
+    cfg.BoolOpt('router_distributed',
+    default=False,
+    help=_("System-wide flag to determine the type of router "
+           "that tenants can create. Only admin can override."))
+]
+
+cfg.CONF.register_opts(other_opts)
