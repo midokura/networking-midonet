@@ -1,4 +1,4 @@
--e git://git.openstack.org/openstack/neutron.git@stable/juno#egg=neutron
+-e git://git.openstack.org/openstack/neutron.git@juno-eol#egg=neutron
 
 # Some components that the Juno plugin depends on are not compatible with
 # oslo.i18n 2.0.0 which is now available.  Until the library requirements are
