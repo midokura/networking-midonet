@@ -27,6 +27,5 @@ recursive-exclude specs *
 recursive-exclude tools *
 recursive-exclude devstack *
 recursive-exclude midonet/neutron/tests *
-recursive-exclude packaging *
 
 global-exclude *.pyc
