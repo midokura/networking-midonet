@@ -20,3 +20,10 @@ TYPE_UPLINK = 'uplink'
 GATEWAY_DEVICE = "GATEWAY_DEVICE"
 
 MAX_VXLAN_VNI = 16777215
+
+# for resource name on callback method
+MIDONET_NETWORK = "midonet_network"
+
+# for event name on callback method
+# "before_" is a key word to raise exception in neutron.callbacks.manager.
+PRECOMMIT_DELETE = "before_delete"

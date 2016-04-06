@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from midonet.neutron.common import utils as c_utils
 from midonet.neutron.db import agent_membership_db as am_db
 from midonet.neutron.db import l3_db_midonet
 from midonet.neutron.db import port_binding_db as pb_db
@@ -164,6 +165,7 @@ class MidonetPluginV2(plugin.MidonetMixinBase,
         LOG.debug("MidonetPluginV2.delete_network called: id=%r", id)
 
         with context.session.begin(subtransactions=True):
+            c_utils.check_delete_network_precommit(context, id)
             self._process_l3_delete(context, id)
             try:
                 super(MidonetPluginV2, self).delete_network(context, id)
