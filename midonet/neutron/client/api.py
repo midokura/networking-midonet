@@ -16,14 +16,106 @@
 from midonet.neutron.client import base
 
 from midonetclient import client
+from midonetclient import url_provider
+from midonetclient import util
+from midonetclient import vendor_media_type as mt
+
+
+class IpAddrGroupUrlProviderMixin(url_provider.UrlProviderMixin):
+    """Ip Addr Group URL provider mixin
+
+    This mixin provides URLs for ip addr group rules.
+    """
+
+    def ipaddr_group_url(self, ipg_id):
+        return self.template_url("ipAddrGroupTemplate", ipg_id)
+
+    def ipaddr_groups_url(self):
+        return self.resource_url("ipAddrGroups")
+
+    def ipaddr_group_addr_url(self, ipg_id, addr):
+        return self.ipaddr_group_addrs_url(ipg_id) + "/" + addr
+
+    def ipaddr_group_addrs_url(self, ipg_id):
+        return self.ipaddr_group_url(ipg_id) + "/ip_addrs"
+
+    def ipaddr_group_version_addr_url(self, ipg_id, v, addr):
+        return self.ipaddr_group_version_url(ipg_id, v) + "/ip_addrs/" + addr
+
+    def ipaddr_group_version_url(self, ipg_id, v):
+        return self.ipaddr_group_url(ipg_id) + "/versions/" + v
+
+
+class IpAddrGroupClientMixin(IpAddrGroupUrlProviderMixin):
+    """Ip Addr Group mixin
+
+    Mixin that defines all the Neutron ip addr group operations in MidoNet API.
+    """
+
+    @util.convert_case
+    def create_ipaddr_group(self, ipg):
+        return self.client.post(self.ipaddr_groups_url(),
+                                mt.APPLICATION_IP_ADDR_GROUP_JSON, body=ipg)
+
+    def delete_ipaddr_group(self, ipg_id):
+        self.client.delete(self.ipaddr_group_url(ipg_id))
+
+    @util.convert_case
+    def get_ipaddr_group(self, ipg_id, fields=None):
+        return self.client.get(self.ipaddr_group_url(ipg_id),
+                               mt.APPLICATION_IP_ADDR_GROUP_JSON)
+
+    @util.convert_case
+    def get_ipaddr_groups(self, filters=None, fields=None, sorts=None,
+                          limit=None, marker=None, page_reverse=False):
+        return self.client.get(self.ipaddr_groups_url(),
+                               mt.APPLICATION_IP_ADDR_GROUP_COLLECTION_JSON)
+
+    @util.convert_case
+    def update_ipaddr_group(self, ipg):
+        return self.client.put(self.ipaddr_group_url(ipg["id"]),
+                               mt.APPLICATION_IP_ADDR_GROUP_JSON, ipg)
+
+    @util.convert_case
+    def create_ipaddr_group_addr(self, ipg_addr):
+        # convert_case converted to camel
+        return self.client.post(
+            self.ipaddr_group_addrs_url(ipg_addr["ipAddrGroupId"]),
+            mt.APPLICATION_IP_ADDR_GROUP_ADDR_JSON, body=ipg_addr)
+
+    def delete_ipaddr_group_addr(self, ipg_id, v, addr):
+        self.client.delete(self.ipaddr_group_version_addr_url(ipg_id, v,
+                                                              addr))
+
+    @util.convert_case
+    def get_ipaddr_group_addr(self, ipg_id, v, addr):
+        return self.client.get(self.ipaddr_group_version_addr_url(ipg_id, v,
+                                                                  addr),
+                               mt.APPLICATION_IP_ADDR_GROUP_ADDR_JSON)
+
+    @util.convert_case
+    def get_ipaddr_group_addrs(self, ipg_id):
+        return self.client.get(
+            self.ipaddr_group_addrs_url(ipg_id),
+            mt.APPLICATION_IP_ADDR_GROUP_ADDR_COLLECTION_JSON)
+
+
+class MidonetFjClient(IpAddrGroupClientMixin,
+                      client.MidonetClient):
+    """Extend MidonetClient to implement FJ specific methods
+
+    There are MidoNet API that must be made available only for FJ.  Implement
+    the client code here so that the upstream client class remains unaware.
+    """
+    pass
 
 
 class MidonetApiClient(base.MidonetClientBase):
 
     def __init__(self, conf):
-        self.api_cli = client.MidonetClient(conf.midonet_uri, conf.username,
-                                            conf.password,
-                                            project_id=conf.project_id)
+        self.api_cli = MidonetFjClient(conf.midonet_uri, conf.username,
+                                       conf.password,
+                                       project_id=conf.project_id)
 
     def create_network_postcommit(self, network):
         self.api_cli.create_network(network)
