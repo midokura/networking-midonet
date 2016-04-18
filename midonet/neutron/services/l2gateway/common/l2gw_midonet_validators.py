@@ -14,6 +14,8 @@
 # under the License.
 
 from midonet.neutron.common import constants
+from midonet.neutron.extensions import gateway_device
+from networking_l2gw.services.l2gateway.common import l2gw_validators
 from neutron.api.v2 import attributes
 from neutron.common import exceptions
 
@@ -52,6 +54,13 @@ def validate_gwdevice_list(data, valid_values=None):
     except TypeError:
         return (_("%s: provided data are not iterable") %
                 validate_gwdevice_list.__name__)
+
+
+def is_valid_segmentaion_id(gw_type, seg_id):
+    if (gw_type == gateway_device.ROUTER_DEVICE_TYPE):
+        is_valid_vxlan_id(seg_id)
+    elif gw_type == gateway_device.NETWORK_VLAN_TYPE:
+        l2gw_validators.is_valid_vlan_id(seg_id)
 
 
 def is_valid_vxlan_id(seg_id):
