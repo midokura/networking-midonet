@@ -14,7 +14,6 @@
 #    under the License.
 
 from midonet.neutron.client import base as c_base
-from midonet.neutron.services.l2gateway.common import l2gw_midonet_validators
 
 from networking_l2gw.services.l2gateway.common import constants
 
@@ -46,12 +45,6 @@ class MidonetL2gwDriver(object):
         raise NotImplementedError()
 
     def _validate_gw_connection(self, context, gw_connection):
-        seg_id = gw_connection.get(constants.SEG_ID)
-        gw_type = self.service_plugin.get_gateway_device_type_from_l2gw(
-                context, gw_connection['l2_gateway'])
-        if seg_id:
-            l2gw_midonet_validators.is_valid_segmentaion_id(gw_type, seg_id)
-
         network_id = gw_connection.get(constants.NETWORK_ID)
         self.service_plugin._get_network(context, network_id)
 
