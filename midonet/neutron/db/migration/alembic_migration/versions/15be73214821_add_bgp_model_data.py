@@ -67,6 +67,25 @@ def upgrade():
     )
 
     op.create_table(
+        'bgp_speaker_network_bindings',
+        sa.Column('bgp_speaker_id',
+                  sa.String(length=36),
+                  nullable=False),
+        sa.Column('network_id',
+                  sa.String(length=36),
+                  nullable=True),
+        sa.Column('ip_version', sa.Integer, nullable=False,
+                  autoincrement=False),
+        sa.ForeignKeyConstraint(['bgp_speaker_id'],
+                                ['bgp_speakers.id'],
+                                ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['network_id'],
+                                ['networks.id'],
+                                ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('network_id', 'bgp_speaker_id', 'ip_version')
+    )
+
+    op.create_table(
         'bgp_speaker_peer_bindings',
         sa.Column('bgp_speaker_id',
                   sa.String(length=36),

@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from oslo_db import exception as oslo_db_exc
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 import sqlalchemy as sa
@@ -25,7 +26,7 @@ from neutron.api.v2 import attributes as attr
 from neutron.common import exceptions as n_exc
 from neutron.db import common_db_mixin as common_db
 from neutron.db import model_base
-
+from neutron.db import models_v2
 
 LOG = logging.getLogger(__name__)
 
@@ -48,6 +49,26 @@ class BgpSpeakerPeerBinding(model_base.BASEV2):
                             primary_key=True)
 
 
+class BgpSpeakerNetworkBinding(model_base.BASEV2):
+
+    """Represents a mapping between a network and BGP speaker"""
+
+    __tablename__ = 'bgp_speaker_network_bindings'
+
+    bgp_speaker_id = sa.Column(sa.String(length=36),
+                               sa.ForeignKey('bgp_speakers.id',
+                                             ondelete='CASCADE'),
+                               nullable=False,
+                               primary_key=True)
+    network_id = sa.Column(sa.String(length=36),
+                           sa.ForeignKey('networks.id',
+                                         ondelete='CASCADE'),
+                           nullable=False,
+                           primary_key=True)
+    ip_version = sa.Column(sa.Integer, nullable=False, autoincrement=False,
+                           primary_key=True)
+
+
 class BgpSpeaker(model_base.BASEV2,
                  m_model_base.HasId,
                  m_model_base.HasTenant):
@@ -62,6 +83,10 @@ class BgpSpeaker(model_base.BASEV2,
                              backref='bgp_speaker_peer_bindings',
                              cascade='all, delete, delete-orphan',
                              lazy='joined')
+    networks = orm.relationship(BgpSpeakerNetworkBinding,
+                                backref='bgp_speaker_network_bindings',
+                                cascade='all, delete, delete-orphan',
+                                lazy='joined')
     ip_version = sa.Column(sa.Integer, nullable=False, autoincrement=False)
 
 
@@ -135,6 +160,27 @@ class BgpDbMixin(common_db.CommonDbMixin):
                                               bgp_speaker_id,
                                               bgp_peer_id)
         return {'bgp_peer_id': bgp_peer_id}
+
+    def add_gateway_network(self, context, bgp_speaker_id, network_info):
+        network_id = self._get_id_for(network_info, 'network_id')
+        with context.session.begin(subtransactions=True):
+            try:
+                self._save_bgp_speaker_network_binding(context,
+                                                       bgp_speaker_id,
+                                                       network_id)
+            except oslo_db_exc.DBDuplicateEntry:
+                raise bgp_ext.BgpSpeakerNetworkBindingError(
+                                                network_id=network_id,
+                                                bgp_speaker_id=bgp_speaker_id)
+        return {'network_id': network_id}
+
+    def remove_gateway_network(self, context, bgp_speaker_id, network_info):
+        with context.session.begin(subtransactions=True):
+            network_id = self._get_id_for(network_info, 'network_id')
+            self._remove_bgp_speaker_network_binding(context,
+                                                     bgp_speaker_id,
+                                                     network_id)
+        return {'network_id': network_id}
 
     def delete_bgp_speaker(self, context, bgp_speaker_id):
         with context.session.begin(subtransactions=True):
@@ -264,11 +310,51 @@ class BgpDbMixin(common_db.CommonDbMixin):
                                                 bgp_speaker_id=bgp_speaker_id)
             context.session.delete(binding)
 
+    def _save_bgp_speaker_network_binding(self,
+                                          context,
+                                          bgp_speaker_id,
+                                          network_id):
+        with context.session.begin(subtransactions=True):
+            try:
+                bgp_speaker = self._get_by_id(context, BgpSpeaker,
+                                              bgp_speaker_id)
+            except sa_exc.NoResultFound:
+                raise bgp_ext.BgpSpeakerNotFound(id=bgp_speaker_id)
+
+            try:
+                network = self._get_by_id(context, models_v2.Network,
+                                          network_id)
+            except sa_exc.NoResultFound:
+                raise n_exc.NetworkNotFound(net_id=network_id)
+
+            binding = BgpSpeakerNetworkBinding(
+                                            bgp_speaker_id=bgp_speaker.id,
+                                            network_id=network.id,
+                                            ip_version=bgp_speaker.ip_version)
+            context.session.add(binding)
+
+    def _remove_bgp_speaker_network_binding(self, context,
+                                            bgp_speaker_id, network_id):
+        with context.session.begin(subtransactions=True):
+
+            try:
+                binding = self._get_bgp_speaker_network_binding(
+                                                               context,
+                                                               bgp_speaker_id,
+                                                               network_id)
+            except sa_exc.NoResultFound:
+                raise bgp_ext.BgpSpeakerNetworkNotAssociated(
+                                                network_id=network_id,
+                                                bgp_speaker_id=bgp_speaker_id)
+            context.session.delete(binding)
+
     def _make_bgp_speaker_dict(self, bgp_speaker, fields=None):
         attrs = {'id', 'local_as', 'tenant_id', 'name', 'ip_version'}
         peer_bindings = bgp_speaker['peers']
+        network_bindings = bgp_speaker['networks']
         res = dict((k, bgp_speaker[k]) for k in attrs)
         res['peers'] = [x.bgp_peer_id for x in peer_bindings]
+        res['networks'] = [x.network_id for x in network_bindings]
         return self._fields(res, fields)
 
     def _make_advertised_routes_dict(self, routes):
@@ -286,6 +372,12 @@ class BgpDbMixin(common_db.CommonDbMixin):
         return query.filter(
                         BgpSpeakerPeerBinding.bgp_speaker_id == bgp_speaker_id,
                         BgpSpeakerPeerBinding.bgp_peer_id == bgp_peer_id).one()
+
+    def _get_bgp_speaker_network_binding(self, context,
+                                         bgp_speaker_id, network_id):
+        query = self._model_query(context, BgpSpeakerNetworkBinding)
+        return query.filter(bgp_speaker_id == bgp_speaker_id,
+                            network_id == network_id).one()
 
     def _make_bgp_peer_dict(self, bgp_peer, fields=None):
         attrs = ['tenant_id', 'id', 'name', 'peer_ip', 'remote_as',

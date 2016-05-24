@@ -58,6 +58,11 @@ RESOURCE_ATTRIBUTE_MAP = {
                   'is_visible': True, 'default': [],
                   'required_by_policy': False,
                   'enforce_policy': True},
+        'networks': {'allow_post': False, 'allow_put': False,
+                     'validate': {'type:uuid_list': None},
+                     'is_visible': True, 'default': [],
+                     'required_by_policy': False,
+                     'enforce_policy': True}
     },
     'bgp-peers': {
         'id': {'allow_post': False, 'allow_put': False,
@@ -112,6 +117,11 @@ class BgpSpeakerPeerNotAssociated(exceptions.NotFound):
                 "BGP speaker %(bgp_speaker_id)s.")
 
 
+class BgpSpeakerNetworkNotAssociated(exceptions.NotFound):
+    message = _("Network %(network_id)s is not associated with "
+                "BGP speaker %(bgp_speaker_id)s.")
+
+
 class DuplicateBgpPeerIpException(exceptions.Conflict):
     _message = _("BGP Speaker %(bgp_speaker_id)s is already configured to "
                  "peer with a BGP Peer at %(peer_ip)s, it cannot peer with "
@@ -150,6 +160,8 @@ class Bgp(extensions.ExtensionDescriptor):
         action_map = {BGP_SPEAKER_RESOURCE_NAME:
                       {'add_bgp_peer': 'PUT',
                        'remove_bgp_peer': 'PUT',
+                       'add_gateway_network': 'PUT',
+                       'remove_gateway_network': 'PUT',
                        'get_advertised_routes': 'GET'}}
         exts = rh.build_resource_info(plural_mappings,
                                       RESOURCE_ATTRIBUTE_MAP,
