@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from midonet.neutron.db import model_base as m_model_base
 from midonet.neutron.extensions import agent_membership as ext_am
 from neutron.db import model_base
 import sqlalchemy as sa
@@ -22,9 +23,9 @@ from sqlalchemy.orm import exc
 AGENT_MEMBERSHIP = 'midonet_agent_memberships'
 
 
-class AgentMembership(model_base.BASEV2):
+class AgentMembership(model_base.BASEV2,
+                      m_model_base.HasId):
     __tablename__ = AGENT_MEMBERSHIP
-    id = sa.Column(sa.String(36), primary_key=True)
     ip_address = sa.Column(sa.String(64), nullable=False)
 
 

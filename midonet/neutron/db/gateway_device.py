@@ -14,6 +14,7 @@
 #    under the License.
 
 from midonet.neutron.common import constants as midonet_const
+from midonet.neutron.db import model_base as m_model_base
 from midonet.neutron.extensions import gateway_device as gw_device_ext
 from neutron.callbacks import events
 from neutron.callbacks import registry
@@ -40,14 +41,14 @@ GATEWAY_TUNNEL_IPS = 'midonet_gateway_tunnel_ips'
 GATEWAY_REMOTE_MAC_TABLES = 'midonet_gateway_remote_mac_tables'
 
 
-class GatewayDevice(model_base.BASEV2):
+class GatewayDevice(model_base.BASEV2,
+                    m_model_base.HasId,
+                    m_model_base.HasTenant):
     """Represents a gateway device."""
 
     __tablename__ = GATEWAY_DEVICES
-    id = sa.Column(sa.String(36), primary_key=True)
     name = sa.Column(sa.String(255))
     type = sa.Column(sa.String(length=255), nullable=False)
-    tenant_id = sa.Column(sa.String(length=255))
 
 
 class GatewayHwVtepDevice(model_base.BASEV2):
@@ -137,7 +138,8 @@ class GatewayTunnelIp(model_base.BASEV2):
         primaryjoin="GatewayDevice.id==GatewayTunnelIp.device_id")
 
 
-class GatewayRemoteMacTable(model_base.BASEV2):
+class GatewayRemoteMacTable(model_base.BASEV2,
+                            m_model_base.HasId):
     """Represents a mac table for vtep."""
 
     __tablename__ = GATEWAY_REMOTE_MAC_TABLES
