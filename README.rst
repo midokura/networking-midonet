@@ -90,6 +90,20 @@ NOTE:
 * ``sync_sg_initial_delay`` : Specify initial delay of periodical sync.
 
 
+
+BGP dynamic routing service
+---------------------------
+
+Starting v5.2, MidoNet implements Neutron BGP dynamic routing service extension API.
+The implementation differs slightly from upstream.
+In MidoNet, router treated as bgp-speaker must be specified.
+
+To configure it, add the following service plugin to the `service_plugins` list
+in the DEFAULT section of ``/etc/neutron/neutron.conf``::
+
+    midonet.neutron.services.bgp.plugin.MidonetBgpPlugin
+
+
 Tests
 -----
 

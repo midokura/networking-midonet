@@ -116,3 +116,20 @@ devstack, make sure the following is defined in local.conf:
 
     enable_plugin neutron-lbaas https://git.openstack.org/openstack/neutron-lbaas
     NEUTRON_LBAAS_SERVICE_PROVIDERV1="LOADBALANCER:Midonet:midonet.neutron.services.loadbalancer.driver.MidonetLoadbalancerDriver:default"
+
+
+
+BGP dynamic routing service
+---------------------------
+
+Starting v5.2, MidoNet implements Neutron BGP dynamic routing service extension API.
+The implementation differs slightly from upstream.
+In MidoNet, router treated as bgp-speaker must be specified.
+
+To configure MidoNet including BGP dynamic routing service
+when running devstack, make sure the following is defined in ``local.conf``::
+
+    Q_SERVICE_PLUGIN_CLASSES=midonet.neutron.services.bgp.plugin.MidonetBgpPlugin
+
+Note: Please specify stable/mitaka branch in neutron because
+BGP dynamic routing service does not work with neutron master branch.
