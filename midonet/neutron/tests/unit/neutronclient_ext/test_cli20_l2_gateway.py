@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Midokura SARL
 # Copyright 2015 OpenStack Foundation.
 # All Rights Reserved
 #
@@ -48,69 +49,51 @@ class CLITestV20ExtensionL2GWJSON(test_cli20.CLIExtTestV20Base):
         shell.NeutronShell('2.0')
         ext_cmd = {'l2-gateway-list': l2_gateway.L2GatewayList,
                    'l2-gateway-create': l2_gateway.L2GatewayCreate,
-                   'l2-gateway-update': l2_gateway.L2GatewayUpdate,
                    'l2-gateway-delete': l2_gateway.L2GatewayDelete,
                    'l2-gateway-show': l2_gateway.L2GatewayShow}
         self.assertDictContainsSubset(ext_cmd, shell.COMMANDS['2.0'])
 
-    def _create_l2_gateway(self, args, name, device):
+    def _create_l2gateway(self, name, args,
+                          position_names, position_values):
         resource = 'l2_gateway'
-        cmd = l2_gateway.L2GatewayCreate(test_cli20.MyApp(sys.stdout), None)
-        position_names = ['name', 'devices']
-        position_values = [name, device]
-        self._test_create_resource(resource, cmd, name, 'myid', args,
-                                   position_names, position_values)
-
-    def _update_l2gateway(self, args, values):
-        resource = 'l2_gateway'
-        cmd = l2_gateway.L2GatewayUpdate(test_cli20.MyApp(sys.stdout), None)
-        self._test_update_resource(resource, cmd, 'myid',
-                                   args, values)
+        cmd = l2_gateway.L2GatewayCreate(
+                                        test_cli20.MyApp(sys.stdout), None)
+        self._test_create_resource(resource, cmd, name, 'myid',
+                                   args, position_names, position_values)
 
     def test_create_l2gateway(self):
-        """Test Create l2gateway."""
-
         name = 'l2gateway1'
-        args = [name, '--device', 'name=d1,interface_names=i1']
-        device = [{'device_name': 'd1', 'interfaces': [{'name': 'i1'}]}]
-        self._create_l2_gateway(args, name, device)
+        args = [name, '--device',
+                'device_id=my_device_id,segmentation_id=my_segmentation_id']
+        position_names = ['name', 'devices']
+        position_values = [name, [{"device_id": "my_device_id",
+                                  "segmentation_id": "my_segmentation_id"}]]
+        self._create_l2gateway(name, args,
+                               position_names, position_values)
 
     def test_create_l2gateway_with_multiple_devices(self):
-        """Test Create l2gateway for multiple devices."""
-
         name = 'l2gateway1'
-        args = [name, '--device', 'name=dev1,interface_names=int1',
-                '--device', 'name=dev2,interface_names=int2']
-        devices = [{'device_name': 'dev1', 'interfaces': [{'name': 'int1'}]},
-                   {'device_name': 'dev2', 'interfaces': [{'name': 'int2'}]}]
-        self._create_l2_gateway(args, name, devices)
+        args = [name,
+                '--device',
+                'device_id=my_device_id1,segmentation_id=my_segmentation_id1',
+                '--device',
+                'device_id=my_device_id2,segmentation_id=my_segmentation_id2']
+        position_names = ['name', 'devices']
+        position_values = [name,
+                           [{"device_id": "my_device_id1",
+                             "segmentation_id": "my_segmentation_id1"},
+                            {"device_id": "my_device_id2",
+                             "segmentation_id": "my_segmentation_id2"}]]
+        self._create_l2gateway(name, args,
+                               position_names, position_values)
 
-    def test_create_l2gateway_with_multiple_interfaces(self):
-        """Test Create l2gateway with multiple interfaces."""
-
-        name = 'l2gw-mul-interface'
-        args = [name, '--device', 'name=d1,interface_names=int1;int2']
-        interfaces = [{'name': 'int1'}, {'name': 'int2'}]
-        device = [{'device_name': 'd1', 'interfaces': interfaces}]
-        self._create_l2_gateway(args, name, device)
-
-    def test_create_l2gateway_with_segmenation_id(self):
-        """Test Create l2gateway with segmentation-id."""
-
-        name = 'l2gw-seg-id'
-        args = [name, '--device', 'name=d1,interface_names=int1|100']
-        interfaces = [{'name': 'int1', "segmentation_id": ["100"]}]
-        device = [{'device_name': 'd1', 'interfaces': interfaces}]
-        self._create_l2_gateway(args, name, device)
-
-    def test_create_l2gateway_with_mul_segmenation_id(self):
-        """Test Create l2gateway with multiple segmentation-ids."""
-
-        name = 'l2gw-mul-seg-id'
-        args = [name, '--device', 'name=d1,interface_names=int1|100#200']
-        interfaces = [{'name': 'int1', "segmentation_id": ["100", "200"]}]
-        device = [{'device_name': 'd1', 'interfaces': interfaces}]
-        self._create_l2_gateway(args, name, device)
+    def test_create_l2gateway_without_segmentation_id(self):
+        name = 'l2gateway1'
+        args = [name, '--device', 'device_id=my_device_id']
+        position_names = ['name', 'devices']
+        position_values = [name, [{"device_id": "my_device_id"}]]
+        self._create_l2gateway(name, args,
+                               position_names, position_values)
 
     def test_list_l2gateway(self):
         """Test List l2gateways."""
@@ -136,53 +119,3 @@ class CLITestV20ExtensionL2GWJSON(test_cli20.CLIExtTestV20Base):
         args = ['--fields', 'id', '--fields', 'name', self.test_id]
         self._test_show_resource(resource, cmd, self.test_id, args,
                                  ['id', 'name'])
-
-    def test_update_l2gateway(self):
-        """Test Update l2gateway."""
-
-        args = ['myid', '--name', 'myname', '--device',
-                'name=d1,interface_names=i1']
-        values = {'name': 'myname',
-                  'devices': [{'device_name': 'd1',
-                               'interfaces': [{'name': 'i1'}]}]}
-        self._update_l2gateway(args, values)
-
-    def test_update_l2gateway_name(self):
-        """Test Update l2gatewayi name."""
-
-        args = ['myid', '--name', 'myname']
-        values = {'name': 'myname'}
-        self._update_l2gateway(args, values)
-
-    def test_update_l2gateway_with_multiple_interfaces(self):
-        """Test Update l2gateway with multiple interfaces."""
-
-        args = ['myid', '--name', 'myname', '--device',
-                'name=d1,interface_names=i1;i2']
-        values = {'name': 'myname',
-                  'devices': [{'device_name': 'd1',
-                               'interfaces': [{'name': 'i1'},
-                                              {'name': 'i2'}]}]}
-        self._update_l2gateway(args, values)
-
-    def test_update_l2gateway_with_segmentation_id(self):
-        """Test Update l2gateway with segmentation-id."""
-
-        args = ['myid', '--name', 'myname', '--device',
-                'name=d1,interface_names=int1|100']
-        interfaces = [{'name': 'int1', "segmentation_id": ["100"]}]
-        values = {'name': 'myname',
-                  'devices': [{'device_name': 'd1',
-                               'interfaces': interfaces}]}
-        self._update_l2gateway(args, values)
-
-    def test_update_l2gateway_with_mul_segmentation_ids(self):
-        """Test Update l2gateway with multiple segmentation-ids."""
-
-        args = ['myid', '--name', 'myname', '--device',
-                'name=d1,interface_names=int1|100#200']
-        interfaces = [{'name': 'int1', "segmentation_id": ["100", "200"]}]
-        values = {'name': 'myname',
-                  'devices': [{'device_name': 'd1',
-                               'interfaces': interfaces}]}
-        self._update_l2gateway(args, values)

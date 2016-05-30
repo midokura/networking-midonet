@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Midokura SARL
 # Copyright 2015 OpenStack Foundation.
 # All Rights Reserved
 #
@@ -22,11 +23,6 @@ from oslo_serialization import jsonutils
 _ = i18n._
 
 
-INTERFACE_DELIMITER = ";"
-SEGMENTATION_ID_DELIMITER = "#"
-INTERFACE_SEG_ID_DELIMITER = "|"
-
-
 def _format_devices(l2_gateway):
     try:
         return '\n'.join([jsonutils.dumps(gateway) for gateway in
@@ -44,73 +40,35 @@ class L2Gateway(extension.NeutronClientExtension):
     versions = ['2.0']
 
 
-def get_interface(interfaces):
-    interface_dict = []
-    for interface in interfaces:
-        if INTERFACE_SEG_ID_DELIMITER in interface:
-            int_name = interface.split(INTERFACE_SEG_ID_DELIMITER)[0]
-            segid = interface.split(INTERFACE_SEG_ID_DELIMITER)[1]
-            if SEGMENTATION_ID_DELIMITER in segid:
-                segid = segid.split(SEGMENTATION_ID_DELIMITER)
-            else:
-                segid = [segid]
-            interface_detail = {'name': int_name, 'segmentation_id': segid}
-        else:
-            interface_detail = {'name': interface}
-        interface_dict.append(interface_detail)
-    return interface_dict
-
-
 def add_known_arguments(self, parser):
     parser.add_argument(
         '--device',
-        metavar='name=name,interface_names=INTERFACE-DETAILS',
+        metavar='device_id=DEVICE_ID,segmentaion_id=SEGMENTAION_ID',
         action='append', dest='devices', type=utils.str2dict,
-        help=_('Device name and Interface-names of l2gateway. '
-               'INTERFACE-DETAILS is of form '
-               '\"<interface_name1>;[<interface_name2>]'
-               '[|<seg_id1>[#<seg_id2>]]\" '
-               '(--device option can be repeated)'))
+        help=_('Device id and segmentation id of l2gateway. '
+               '--device option can be repeated'))
 
 
 def args2body(self, parsed_args):
         if parsed_args.devices:
             devices = parsed_args.devices
-            interfaces = []
         else:
             devices = []
-        device_dict = []
-        for device in devices:
-            if 'interface_names' in device.keys():
-                interface = device['interface_names']
-                if INTERFACE_DELIMITER in interface:
-                    interface_dict = interface.split(INTERFACE_DELIMITER)
-                    interfaces = get_interface(interface_dict)
-                else:
-                    interfaces = get_interface([interface])
-            if 'name' in device.keys():
-                device = {'device_name': device['name'],
-                          'interfaces': interfaces}
-            else:
-                device = {'interfaces': interfaces}
-            device_dict.append(device)
+        body = {'l2_gateway': {'devices': devices}}
         if parsed_args.name:
             l2gw_name = parsed_args.name
-            body = {'l2_gateway': {'name': l2gw_name,
-                                   'devices': device_dict}, }
-        else:
-            body = {'l2_gateway': {'devices': device_dict}, }
+            body['l2_gateway']['name'] = l2gw_name
         return body
 
 
 class L2GatewayCreate(extension.ClientExtensionCreate, L2Gateway):
-    """Create l2gateway information."""
+    """Create l2gateway information for midonet."""
 
     shell_command = 'l2-gateway-create'
 
     def add_known_arguments(self, parser):
         parser.add_argument(
-            'name', metavar='<GATEWAY-NAME>',
+            'name', metavar='GATEWAY-NAME',
             help=_('Descriptive name for logical gateway.'))
         add_known_arguments(self, parser)
 
@@ -141,22 +99,3 @@ class L2GatewayDelete(extension.ClientExtensionDelete, L2Gateway):
     """Delete a given l2gateway."""
 
     shell_command = 'l2-gateway-delete'
-
-
-class L2GatewayUpdate(extension.ClientExtensionUpdate, L2Gateway):
-    """Update a given l2gateway."""
-
-    shell_command = 'l2-gateway-update'
-
-    def add_known_arguments(self, parser):
-        parser.add_argument(
-            '--name', metavar='name',
-            help=_('Descriptive name for logical gateway.'))
-        add_known_arguments(self, parser)
-
-    def args2body(self, parsed_args):
-        if parsed_args.devices:
-            body = args2body(self, parsed_args)
-        else:
-            body = {'l2_gateway': {'name': parsed_args.name}}
-        return body
