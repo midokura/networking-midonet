@@ -166,3 +166,7 @@ class Bgp(extensions.ExtensionDescriptor):
             return RESOURCE_ATTRIBUTE_MAP
         else:
             return {}
+
+    def update_attributes_map(self, attributes):
+        super(Bgp, self).update_attributes_map(
+            attributes, extension_attrs_map=RESOURCE_ATTRIBUTE_MAP)

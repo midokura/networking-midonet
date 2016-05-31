@@ -19,14 +19,12 @@ from oslo_log import helpers as log_helpers
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from neutron.api import extensions as neutron_extensions
 from neutron import i18n
 
 from midonet.neutron.client import base as c_base
 from midonet.neutron.common import constants as m_const
 from midonet.neutron.db import bgp_db_midonet
 from midonet.neutron.db import bgp_speaker_router_insertion_db as bsridb
-from midonet.neutron import extensions
 from midonet.neutron.extensions import bgp
 from midonet.neutron.extensions import bgp_speaker_router_insertion as bsri
 
@@ -47,8 +45,6 @@ class MidonetBgpPlugin(bgp_db_midonet.MidonetBgpDbMixin,
                                    bsri.BGP_ROUTER_EXT_ALIAS]
 
     def __init__(self):
-        neutron_extensions.append_api_extensions_path(extensions.__path__)
-
         # Instantiate MidoNet API client.
         self.client = c_base.load_client(cfg.CONF.MIDONET)
         bsridb.subscribe()
