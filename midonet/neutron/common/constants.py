@@ -18,6 +18,7 @@ TYPE_UPLINK = 'uplink'
 
 # Neutron well-known service type constants:
 GATEWAY_DEVICE = "GATEWAY_DEVICE"
+LOGGING_RESOURCE = "LOGGING_RESOURCE"
 
 MAX_VXLAN_VNI = 16777215
 
@@ -30,3 +31,6 @@ PRECOMMIT_DELETE = "before_delete"
 
 # for bgp dynamic router extention
 LOGICAL_ROUTER = 'logical_router'
+
+# Attribute constants
+LONG_DESCRIPTION_MAX_LEN = 1024
