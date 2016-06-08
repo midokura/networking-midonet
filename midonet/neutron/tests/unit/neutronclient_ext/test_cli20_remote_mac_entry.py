@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import sys
-import testtools
 
 from midonet.neutron.tests.unit.neutronclient_ext import test_cli20
 from midonet.neutronclient.gateway_device_extension import _remote_mac_entry
@@ -27,9 +26,7 @@ class CLITestV20RemoteMacEntryJSON(test_cli20.CLIExtTestV20Base):
         self._mock_load_extensions(remote_mac_entry)
         super(CLITestV20RemoteMacEntryJSON,
               self).setUp(plurals={'remote_mac_entries': 'remote_mac_entry'})
-        #self.register_non_admin_status_resource('remote_mac_entry')
 
-    @testtools.skip("bug/1446428(this fix is released for Liberty)")
     def test_remote_mac_entry_cmd_loaded(self):
         shell.NeutronShell('2.0')
         remote_mac_entry_cmd = {'gateway-device-remote-mac-entry-list':
@@ -52,7 +49,6 @@ class CLITestV20RemoteMacEntryJSON(test_cli20.CLIExtTestV20Base):
                                    args, position_names, position_values,
                                    parent_id=parent_id)
 
-    @testtools.skip("bug/1446428(this fix is released for Liberty)")
     def test_create_remote_mac_entry(self):
         gw_device_id = 'my_gw_device'
         mac_addr = 'fa:16:3e:db:79:80'
@@ -65,7 +61,6 @@ class CLITestV20RemoteMacEntryJSON(test_cli20.CLIExtTestV20Base):
         self._create_remote_mac_entry(args, position_names,
                                       position_values, parent_id=gw_device_id)
 
-    @testtools.skip("bug/1446428(this fix is released for Liberty)")
     def test_create_remote_mac_entry_with_missing_gw_device_id(self):
         mac_addr = ''
         vtep_addr = ''
@@ -77,7 +72,6 @@ class CLITestV20RemoteMacEntryJSON(test_cli20.CLIExtTestV20Base):
         self.assertRaises(SystemExit, self._create_remote_mac_entry,
                           args, position_names, position_values)
 
-    @testtools.skip("bug/1446428(this fix is released for Liberty)")
     def test_create_remote_mac_entry_with_missing_seg_id(self):
         gw_device_id = 'my_gw_device'
         mac_addr = ''
@@ -90,7 +84,6 @@ class CLITestV20RemoteMacEntryJSON(test_cli20.CLIExtTestV20Base):
                           args, position_names, position_values,
                           parent_id=gw_device_id)
 
-    @testtools.skip("bug/1446428(this fix is released for Liberty)")
     def test_delete_remote_mac_entry(self):
         resource = 'remote_mac_entry'
         cmd = _remote_mac_entry.RemoteMacEntryDelete(
@@ -101,7 +94,6 @@ class CLITestV20RemoteMacEntryJSON(test_cli20.CLIExtTestV20Base):
         self._test_delete_ext_resource(resource, cmd, my_id, args,
                                        parent_id=gw_device_id)
 
-    @testtools.skip("bug/1446428(this fix is released for Liberty)")
     def test_list_remote_mac_entries(self):
         resources = 'remote_mac_entries'
         cmd = _remote_mac_entry.RemoteMacEntryList(
@@ -111,7 +103,6 @@ class CLITestV20RemoteMacEntryJSON(test_cli20.CLIExtTestV20Base):
         self._test_list_resources(resources, cmd, base_args=args,
                                   parent_id=gw_device_id)
 
-    @testtools.skip("bug/1446428(this fix is released for Liberty)")
     def test_show_remote_mac_entry(self):
         resource = 'remote_mac_entry'
         cmd = _remote_mac_entry.RemoteMacEntryShow(

@@ -72,6 +72,17 @@ class RemoteMacEntryCreate(extension.ClientExtensionCreate, RemoteMacEntry):
         gw_deviceV20.update_dict(args, body, attributes)
         return {'remote_mac_entry': body}
 
+    def run(self, parsed_args):
+        def _extend_create(parent_id, body=None):
+            return neutron_client.create_ext(
+                     RemoteMacEntry.object_path % parent_id,
+                     body)
+
+        neutron_client = self.get_client()
+        setattr(neutron_client, "create_%s" % RemoteMacEntry.resource,
+                _extend_create)
+        super(RemoteMacEntryCreate, self).run(parsed_args)
+
 
 class RemoteMacEntryList(extension.ClientExtensionList, RemoteMacEntry):
     """List Gateway Device Remote Mac Entries."""
@@ -81,6 +92,21 @@ class RemoteMacEntryList(extension.ClientExtensionList, RemoteMacEntry):
     pagination_support = True
     sorting_support = True
 
+    def run(self, parsed_args):
+        def _extend_list(parent_id, **_params):
+            return neutron_client.list_ext(
+                     RemoteMacEntry.object_path % parent_id,
+                     **_params)
+        neutron_client = self.get_client()
+        setattr(neutron_client, "list_%s" % RemoteMacEntry.resource_plural,
+                _extend_list)
+
+        # Add this entry since upstream doesn't handle resource_plural in kilo.
+        neutron_client.EXTED_PLURALS[RemoteMacEntry.resource_plural] = (
+                                        RemoteMacEntry.resource)
+
+        super(RemoteMacEntryList, self).run(parsed_args)
+
 
 class RemoteMacEntryShow(extension.ClientExtensionShow, RemoteMacEntry):
     """Show information of a given gateway-device-remote-mac-entry."""
@@ -88,9 +114,32 @@ class RemoteMacEntryShow(extension.ClientExtensionShow, RemoteMacEntry):
     shell_command = 'gateway-device-remote-mac-entry-show'
     allow_names = False
 
+    def run(self, parsed_args):
+        def _extend_show(obj, parent_id, **_params):
+            return neutron_client.show_ext(
+                     RemoteMacEntry.resource_path % parent_id,
+                     obj,
+                     **_params)
+        neutron_client = self.get_client()
+        setattr(neutron_client, "show_%s" % RemoteMacEntry.resource,
+                _extend_show)
+
+        super(RemoteMacEntryShow, self).run(parsed_args)
+
 
 class RemoteMacEntryDelete(extension.ClientExtensionDelete, RemoteMacEntry):
     """Delete a given gateway-device-remote-mac-entry."""
 
     shell_command = 'gateway-device-remote-mac-entry-delete'
     allow_names = False
+
+    def run(self, parsed_args):
+        def _extend_delete(obj, parent_id):
+            return neutron_client.delete_ext(
+                     RemoteMacEntry.resource_path % parent_id,
+                     obj)
+        neutron_client = self.get_client()
+        setattr(neutron_client, "delete_%s" % RemoteMacEntry.resource,
+                _extend_delete)
+
+        super(RemoteMacEntryDelete, self).run(parsed_args)
