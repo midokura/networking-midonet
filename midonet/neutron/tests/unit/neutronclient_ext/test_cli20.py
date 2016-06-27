@@ -74,7 +74,8 @@ class CLIExtTestV20Base(test_cli20.CLITestV20Base):
                                       'metering_label_rule', 'net_partition',
                                       'fox_socket', 'subnetpool',
                                       'remote_mac_entry', 'firewall_log',
-                                      'logging_resource']
+                                      'logging_resource', 'l2_gateway',
+                                      'l2_gateway_connection']
         if not cmd_resource:
             cmd_resource = resource
         if (resource in non_admin_status_resources):
