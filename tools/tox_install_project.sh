@@ -38,7 +38,7 @@ elif [ -x "$ZUUL_CLONER" ]; then
     cd "$cwd"
 else
     echo "PIP HARDCODE" > /tmp/tox_install-${PROJ}.txt
-    pip install -U -egit+https://git.openstack.org/openstack/${PROJ}@stable/kilo#egg=${PROJ}
+    pip install -U -egit+https://git.openstack.org/openstack/${PROJ}@kilo-eol#egg=${PROJ}
 fi
 
 pip install -U $*
