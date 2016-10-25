@@ -29,6 +29,8 @@ from neutron.db import l3_gwmode_db
 from neutron.extensions import l3
 from neutron.plugins.common import utils as p_utils
 
+import netaddr
+
 DEVICE_OWNER_FLOATINGIP = n_const.DEVICE_OWNER_FLOATINGIP
 
 
